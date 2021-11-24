@@ -1,10 +1,13 @@
 package ru.netology.nmedia.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.model.FeedModel
-import ru.netology.nmedia.repository.*
+import ru.netology.nmedia.repository.PostRepository
+import ru.netology.nmedia.repository.PostRepositoryImpl
 import ru.netology.nmedia.util.SingleLiveEvent
 import java.io.IOException
 import kotlin.concurrent.thread
@@ -70,9 +73,42 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         edited.value = edited.value?.copy(content = text)
     }
 
-    fun likeById(id: Long) {
-        thread { repository.likeById(id) }
+    fun likeById(id: Long, isDislike: Boolean) {
+        thread {
+            // Оптимистичная модель
+            val oldPosts = _data.value?.posts.orEmpty()
+            val updatedPosts = getPostsAfterLike(id, isDislike, oldPosts)
+            _data.postValue(FeedModel(posts = updatedPosts))
+            try {
+                // Данные успешно получены; обновляем пост на случай, если другие пользователи тоже ставили/убирали лайки
+                val updatedPost = repository.likeById(id, isDislike)
+                val posts = _data.value?.posts.orEmpty().map { post ->
+                    if (post.id == updatedPost.id) {
+                        updatedPost
+                    } else {
+                        post
+                    }
+                }
+                FeedModel(posts = posts, empty = posts.isEmpty())
+            } catch (e: IOException) {
+                // Получена ошибка
+                FeedModel(error = true)
+            }.also(_data::postValue)
+        }
     }
+
+    private fun getPostsAfterLike(id: Long, isDislike: Boolean, oldPosts: List<Post>) =
+        oldPosts.map { post ->
+            if (post.id == id) {
+                if (isDislike) {
+                    post.copy(likedByMe = false, likes = post.likes - 1)
+                } else {
+                    post.copy(likedByMe = true, likes = post.likes + 1)
+                }
+            } else {
+                post
+            }
+        }
 
     fun removeById(id: Long) {
         thread {
