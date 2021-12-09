@@ -6,9 +6,11 @@ import android.widget.PopupMenu
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.CardPostBinding
 import ru.netology.nmedia.dto.Post
+import ru.netology.nmedia.repository.PostRepositoryImpl
 
 interface OnInteractionListener {
     fun onLike(post: Post) {}
@@ -71,6 +73,18 @@ class PostViewHolder(
 
             share.setOnClickListener {
                 onInteractionListener.onShare(post)
+            }
+
+            if (post.authorAvatar.isNotBlank()) {
+                val url = "${PostRepositoryImpl.BASE_URL}/avatars/${post.authorAvatar}"
+                Glide.with(binding.avatar)
+                    .load(url)
+                    .placeholder(R.drawable.ic_loading_100dp)
+                    .error(R.drawable.ic_error_100dp)
+                    .timeout(10_000)
+                    .into(binding.avatar)
+            } else {
+                binding.avatar.setImageResource(R.drawable.ic_error_100dp)
             }
         }
     }
