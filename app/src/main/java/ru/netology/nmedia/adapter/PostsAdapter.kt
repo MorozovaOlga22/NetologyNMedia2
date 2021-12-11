@@ -1,6 +1,7 @@
 package ru.netology.nmedia.adapter
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.recyclerview.widget.DiffUtil
@@ -9,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import ru.netology.nmedia.R
 import ru.netology.nmedia.databinding.CardPostBinding
+import ru.netology.nmedia.dto.AttachmentType
 import ru.netology.nmedia.dto.Post
 import ru.netology.nmedia.repository.PostRepositoryImpl
 
@@ -77,15 +79,30 @@ class PostViewHolder(
 
             if (post.authorAvatar.isNotBlank()) {
                 val url = "${PostRepositoryImpl.BASE_URL}/avatars/${post.authorAvatar}"
-                Glide.with(binding.avatar)
+                Glide.with(avatar)
                     .load(url)
                     .placeholder(R.drawable.ic_loading_100dp)
                     .error(R.drawable.ic_error_100dp)
                     .timeout(10_000)
                     .circleCrop()
-                    .into(binding.avatar)
+                    .into(avatar)
             } else {
-                binding.avatar.setImageResource(R.drawable.ic_error_100dp)
+                avatar.setImageResource(R.drawable.ic_error_100dp)
+            }
+
+            val attachment = post.attachment
+            if (attachment != null && attachment.type == AttachmentType.IMAGE) {
+                val url = "${PostRepositoryImpl.BASE_URL}/images/${attachment.url}"
+                Glide.with(attachmentPicture)
+                    .load(url)
+                    .placeholder(R.drawable.ic_loading_100dp)
+                    .error(R.drawable.ic_error_100dp)
+                    .timeout(10_000)
+                    .into(attachmentPicture)
+                attachmentPicture.visibility = View.VISIBLE
+                attachmentPicture.contentDescription = attachment.description
+            } else {
+                attachmentPicture.visibility = View.GONE
             }
         }
     }
